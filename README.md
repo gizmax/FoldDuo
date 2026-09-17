@@ -51,7 +51,11 @@ Then set Fold Duo as the default Home, and in Android settings grant it **Notifi
 
 ## Privacy
 
-Fold Duo has **no INTERNET permission**. Nothing leaves the phone. Notification access and the accessibility service are used only for the features above and can be turned off in Android settings.
+Everything Fold Duo shows is read on the device: apps, notifications, media sessions, contacts, calendar, photos. There are no analytics, no accounts, no tracking.
+
+Two Spotlight features reach the network, both behind the **Search online** setting you can turn off: place names are resolved through Android's own geocoder, and music results come from Apple's public iTunes Search API. Only the search term you typed is sent. Everything else, including the place gazetteer and the photo location index, is local.
+
+Notification access and the accessibility service are used only for the features above and can be turned off in Android settings.
 
 ## Building
 
