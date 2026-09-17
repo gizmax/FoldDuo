@@ -1,0 +1,13 @@
+build/
+.gradle/
+local.properties
+*.iml
+.idea/
+.DS_Store
+*.bak-*
+app/release/
+.claude/
+*.swp
+__pycache__/
+pose/testdata/hinge-*.logcat
+!pose/testdata/hinge-*-sample.logcat

@@ -1,0 +1,69 @@
+// Fold Duo B50 "Tapeta dýchá s oznámením": a soft glow entering from one edge of the wallpaper,
+// synced with an eligible notification's own colour (IslandNotificationListener.kt derives it;
+// no text or package name ever reaches this shader, just an ARGB colour and a progress fraction).
+// Additive over the wallpaper content, so it lightens rather than replaces — a colour wash, not a
+// curtain.
+//
+// Model:
+// - `edge` selects which screen edge the band grows from (0 top, 1 bottom, 2 left, 3 right); B50
+//   only ever drives 0 (a notification always lands from the top, cover and inner panel alike),
+//   the other three exist so a future call site can reuse this without a new shader.
+// - `progress` (0..1 over the pulse's ~900 ms) drives two curves, mirrored in pure Kotlin by
+//   PulseMotion.kt (spreadFraction/opacity) for the JVM tests:
+//   - spread: how far the band has grown inward, easing 0 -> maxSpreadFraction of the surface's
+//     height by progress 0.35, then held (the band stops growing; only opacity keeps changing).
+//   - opacity: the same ease-out rise to progress 0.35, then an ease-out fade to 0 by progress
+//     1.0, capped at maxOpacity.
+// - Within the band the glow falls off smoothly from full at the edge to 0 at the spread's inner
+//   line (smoothstep), so it reads as a soft glow, not a hard-edged bar.
+//
+// Uniforms:
+// - resolution: layer size in px.
+// - colour: the notification's derived accent, straight RGB 0..1 (no alpha channel — the glow's
+//   own opacity uniform already carries that).
+// - progress: 0..1 through the pulse; the caller does not chain this shader in at all once a
+//   pulse's progress reaches 1 (DuneWallpaper.kt's `rememberEdgePulse`/`pulseEffect`) rather than
+//   pay for a no-op eval every frame.
+// - edge: 0 top, 1 bottom, 2 left, 3 right.
+
+uniform shader content;
+uniform float2 resolution;
+uniform float3 colour;
+uniform float progress;
+uniform float edge;
+
+const float PEAK_PROGRESS = 0.35;
+const float MAX_SPREAD_FRACTION = 0.18;
+const float MAX_OPACITY = 0.35;
+
+half4 main(float2 fragCoord) {
+    half4 c = content.eval(fragCoord);
+    if (resolution.x <= 1.0 || resolution.y <= 1.0 || progress <= 0.0 || progress >= 1.0) {
+        return c;
+    }
+
+    float rise = clamp(progress / PEAK_PROGRESS, 0.0, 1.0);
+    float eased = 1.0 - (1.0 - rise) * (1.0 - rise);
+    float spreadPx = eased * MAX_SPREAD_FRACTION * resolution.y;
+
+    float fade = clamp((progress - PEAK_PROGRESS) / (1.0 - PEAK_PROGRESS), 0.0, 1.0);
+    float fadeEased = 1.0 - fade * fade;
+    float opacity = (progress <= PEAK_PROGRESS ? eased : fadeEased) * MAX_OPACITY;
+    if (opacity <= 0.0 || spreadPx <= 0.0) {
+        return c;
+    }
+
+    // Distance from the chosen edge, in px, along that edge's inward axis.
+    float distFromEdge =
+        edge < 0.5 ? fragCoord.y :
+        edge < 1.5 ? resolution.y - fragCoord.y :
+        edge < 2.5 ? fragCoord.x :
+        resolution.x - fragCoord.x;
+
+    float band = 1.0 - smoothstep(0.0, spreadPx, distFromEdge);
+    if (band <= 0.0) {
+        return c;
+    }
+    half3 glow = half3(colour) * half(band * opacity);
+    return half4(c.rgb + glow, c.a);
+}

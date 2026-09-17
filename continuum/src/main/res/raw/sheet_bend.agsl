@@ -1,0 +1,77 @@
+// Fold Duo B37 "Tapeta jako ohýbaný list": the wallpaper drawn as a sheet of paper bent at the
+// hinge by the real device angle, on the inner display. Original for this project (not ported
+// from duo-open); reuses fold_morph.agsl's book-fold projection maths (see that file's header)
+// but applies it symmetrically to both halves instead of holding one still.
+//
+// Model:
+// - The image is a flat plane; the hinge is the vertical line x = hingeX.
+// - Each half is that plane rotated bendDeg/2 around the hinge, its outer edge rising toward the
+//   viewer (same convention as fold_morph.agsl) — so at bendDeg 0 the sheet is dead flat and at
+//   the swap (~60) it reads as a shallow open book/tent, not the near-90 the frost shader caps at.
+// - Eye is stationary on the hinge's normal, eyeDistancePx back from the plane.
+// - Per pixel: ray eye -> glass point, continued to the flat plane; the sampled pixel is clamped
+//   to the image edge, never transparent, so nothing behind the "sheet" ever shows through.
+// - A soft shadow band darkens the crease (proportional to bendDeg, 6% of the half's width) and a
+//   faint specular highlights whichever half's outward normal faces lightDir.
+//
+// Uniforms:
+// - hingeX: hinge line position in px along x.
+// - bendDeg: total dihedral bend, 0 = flat, up to ~60 at the swap; each half tilts bendDeg/2.
+//   A small negative value (B37's "snap flat" overshoot) bends both halves a hair the other way.
+// - eyeDistancePx: eye-to-plane distance in px (FoldConfig.eyeDistanceMm * px-per-mm).
+// - lightDir: normalized screen-space direction the light comes from.
+//
+// NOTE: minimal AGSL constructs on purpose, same constraint as fold_morph.agsl (no break/continue,
+// no bool locals, no helper functions, no ternary) — mix()/step() stand in for branches.
+
+uniform shader content;
+uniform float2 resolution;
+uniform float hingeX;
+uniform float bendDeg;
+uniform float eyeDistancePx;
+uniform float2 lightDir;
+
+const float SHADOW_WIDTH_FRACTION = 0.06;
+const float SHADOW_STRENGTH = 0.35;
+const float SPECULAR_STRENGTH = 0.12;
+
+half4 main(float2 fragCoord) {
+    if (resolution.x <= 1.0 || resolution.y <= 1.0) {
+        return content.eval(fragCoord);
+    }
+    float clampedBend = clamp(bendDeg, -10.0, 60.0);
+    if (abs(clampedBend) < 0.05) {
+        return content.eval(fragCoord);
+    }
+    float tilt = radians(clampedBend) * 0.5;
+
+    float rightSide = step(hingeX, fragCoord.x);   // 0 left half, 1 right half
+    float side = mix(-1.0, 1.0, rightSide);
+    float halfWidth = mix(hingeX, resolution.x - hingeX, rightSide);
+    float d = abs(fragCoord.x - hingeX);
+
+    // The half rotated `tilt` around the hinge, outer edge rising toward the viewer.
+    float2 glass = float2(hingeX + side * d * cos(tilt), fragCoord.y);
+    float gap = d * sin(tilt);
+    float2 eye = float2(hingeX, resolution.y * 0.5);
+
+    float depth = max(eyeDistancePx - gap, 1.0);
+    float2 hit = eye + (glass - eye) * (eyeDistancePx / depth);
+
+    // Outside the projected sheet: the image's own edge colour (clamp), never transparent.
+    float2 sample = clamp(hit, float2(0.0), resolution - float2(1.0));
+    half4 c = content.eval(sample);
+
+    // Soft shadow band at the crease, 6% of the half's width, darkening with bendDeg.
+    float shadowWidth = max(halfWidth * SHADOW_WIDTH_FRACTION, 1.0);
+    float bendFraction = clamp(abs(clampedBend) / 60.0, 0.0, 1.0);
+    float shadow = (1.0 - smoothstep(0.0, shadowWidth, d)) * bendFraction;
+    c.rgb *= half(1.0 - shadow * SHADOW_STRENGTH);
+
+    // Faint specular where this half's outward normal faces the light.
+    float2 normal = float2(-side * sin(tilt), 0.0);
+    float facing = clamp(dot(normal, lightDir), 0.0, 1.0);
+    c.rgb += half(facing * bendFraction * SPECULAR_STRENGTH);
+
+    return c;
+}

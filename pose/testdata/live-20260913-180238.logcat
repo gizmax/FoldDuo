@@ -1,0 +1,13 @@
+--------- beginning of main
+09-13 18:04:45.935 I/PoseRepository(20566): POSE=InMotion panel=Cover hinge=90 g=4.6/6.3/5.9 since=0ms
+09-13 18:04:47.038 I/PoseRepository(20566): POSE=Stand panel=Inner hinge=180 g=0.4/6.1/7.7 since=504ms
+09-13 18:04:55.935 I/PoseRepository(20566): POSE=InMotion panel=Inner hinge=90 g=1.8/6.7/7.0 since=0ms
+09-13 18:04:56.671 I/PoseRepository(20566): POSE=Closed panel=Cover hinge=0 g=-1.7/5.3/8.1 since=511ms
+09-13 18:05:01.135 I/PoseRepository(20566): POSE=InMotion panel=Cover hinge=90 g=2.4/7.7/5.6 since=0ms
+09-13 18:05:01.856 I/PoseRepository(20566): POSE=Tent panel=Cover hinge=90 g=-7.3/5.8/3.0 since=721ms
+09-13 18:05:06.824 I/PoseRepository(20566): POSE=InMotion panel=Cover hinge=90 g=-6.9/0.2/6.9 since=5688ms
+09-13 18:05:08.240 I/PoseRepository(20566): POSE=Closed panel=Cover hinge=0 g=0.8/0.0/9.8 since=506ms
+09-13 18:05:15.406 I/PoseRepository(20566): POSE=Flip panel=Cover hinge=0 g=7.3/2.5/-6.1 since=7671ms
+09-13 18:05:17.564 I/PoseRepository(20566): POSE=Closed panel=Cover hinge=0 g=7.8/3.4/-4.9 since=9827ms
+09-13 18:05:18.978 I/PoseRepository(20566): POSE=Flip panel=Cover hinge=0 g=8.3/0.7/-5.2 since=11244ms
+09-13 18:05:19.803 I/PoseRepository(20566): POSE=Closed panel=Cover hinge=0 g=8.8/0.4/-4.2 since=12068ms

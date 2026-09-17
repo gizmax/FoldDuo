@@ -1,0 +1,87 @@
+# B43 "Výkon jako feature" — hand-written Baseline Profile (AGP/ART "Human Readable Profile" format).
+#
+# This is NOT generated from a device trace: there is no Macrobenchmark module wired up yet (out
+# of scope for this patch — see below), so the rules below are a best-guess list of the classes/
+# methods that sit on the launcher's cold-start path and the unfold morph's hot path, written by
+# hand from reading the code (MainActivity's onCreate, LauncherScreen's first composition,
+# MorphController's per-frame reads, FoldShader/FoldEffect's shader plumbing, PoseRepository's
+# sensor pipeline, systemfrost's overlay). `androidx.profileinstaller` (app/build.gradle.kts)
+# ships this file as `assets/dexopt/baseline.prof`+`.profm` and installs it as a compiler profile
+# the first time the app runs after install, so ART's background dexopt AOT-compiles these methods
+# instead of interpreting/JITing them cold on the first few launches — the same mechanism Play
+# Store's "cloud profiles" use, just seeded locally instead of from aggregated device data.
+#
+# Rule syntax (one per line):
+#   <flags><class descriptor>-><method signature>   -- a method rule
+#   <flags><class descriptor>                        -- a whole-class rule (preload/verify)
+#   flags: H = Hot, S = Startup, P = Post-startup (any combination, e.g. HSP)
+#   wildcards: `*` matches within one path/name segment, `**` matches across segments
+#
+# Regenerating for real (later, separate patch): add a `:macrobenchmark` module
+# (androidx.benchmark.macro, AGP's `androidx.baselineprofile` plugin), record a
+# `BaselineProfileRule` journey that (a) cold-starts the launcher to first frame and (b) drives one
+# full unfold morph (DEBUG_MORPH broadcast, or a real fold on a connected Fold 8), then run
+# `./gradlew :app:generateReleaseBaselineProfile` — that overwrites this file with a real,
+# `profgen`-verified profile from actual execution, which should always win over this hand list.
+
+# --- Cold start: MainActivity and what it wires up synchronously in onCreate ---
+HSPLcz/pflanzer/foldduo/MainActivity;->**(**)**
+HSPLcz/pflanzer/foldduo/MainActivity$*;->**(**)**
+Lcz/pflanzer/foldduo/MainActivity;
+HSPLcz/pflanzer/foldduo/LauncherModel;->**(**)**
+Lcz/pflanzer/foldduo/LauncherModel;
+HSPLcz/pflanzer/foldduo/AppearanceStore;->**(**)**
+HSPLcz/pflanzer/foldduo/SetupExperience;->**(**)**
+HSPLcz/pflanzer/foldduo/DeviceStatusMonitor;->**(**)**
+HSPLcz/pflanzer/foldduo/WidgetController;->**(**)**
+HSPLcz/pflanzer/foldduo/BackupController;->**(**)**
+HSPLcz/pflanzer/foldduo/LauncherBackgroundController;->**(**)**
+
+# --- Home composition: LauncherScreen.kt's top-level composables (Kotlin file-class LauncherScreenKt) ---
+HSPLcz/pflanzer/foldduo/LauncherScreenKt;->**(**)**
+HSPLcz/pflanzer/foldduo/LauncherScreenKt$*;->**(**)**
+Lcz/pflanzer/foldduo/LauncherScreenKt;
+HSPLcz/pflanzer/foldduo/StatusRailKt;->**(**)**
+HSPLcz/pflanzer/foldduo/island/RailIslandKt;->**(**)**
+HSPLcz/pflanzer/foldduo/WallpaperPaletteKt;->**(**)**
+
+# --- Unfold morph: the per-frame path (UnfoldMorph.kt's MorphController/MorphCurve/MorphWarmUp) ---
+HSPLcz/pflanzer/foldduo/MorphController;->**(**)**
+Lcz/pflanzer/foldduo/MorphController;
+HSPLcz/pflanzer/foldduo/MorphCurve;->**(**)**
+Lcz/pflanzer/foldduo/MorphCurve;
+HSPLcz/pflanzer/foldduo/MorphWarmUp;->**(**)**
+HSPLcz/pflanzer/foldduo/UnfoldMorphKt;->**(**)**
+HSPLcz/pflanzer/foldduo/HighRefreshRate;->**(**)**
+HSPLcz/pflanzer/foldduo/MorphFrameMetricsCollector;->**(**)**
+HSPLcz/pflanzer/foldduo/FrameStats;->**(**)**
+HSPLcz/pflanzer/foldduo/PerfHistory;->**(**)**
+HSPLcz/pflanzer/foldduo/WidgetSnapshotCache;->**(**)**
+HSPLcz/pflanzer/foldduo/WidgetSnapshotPolicy;->**(**)**
+HSPLcz/pflanzer/foldduo/HingeUnfold*;->**(**)**
+
+# --- continuum: the fold shader glue (FoldShader/FoldEffect/FoldConfig/ShaderRegistry) ---
+HSPLcz/pflanzer/foldduo/continuum/FoldShader;->**(**)**
+Lcz/pflanzer/foldduo/continuum/FoldShader;
+HSPLcz/pflanzer/foldduo/continuum/FoldEffectKt;->**(**)**
+HSPLcz/pflanzer/foldduo/continuum/FoldEffectCache;->**(**)**
+HSPLcz/pflanzer/foldduo/continuum/FoldConfig;->**(**)**
+HSPLcz/pflanzer/foldduo/continuum/ShaderRegistry;->**(**)**
+Lcz/pflanzer/foldduo/continuum/ShaderRegistry;
+
+# --- pose: the sensor -> hinge-angle pipeline read every frame during a morph ---
+HSPLcz/pflanzer/foldduo/pose/PoseRepository;->**(**)**
+Lcz/pflanzer/foldduo/pose/PoseRepository;
+HSPLcz/pflanzer/foldduo/pose/HingeAngleEstimator;->**(**)**
+HSPLcz/pflanzer/foldduo/pose/HingeTiltSmoother;->**(**)**
+HSPLcz/pflanzer/foldduo/pose/OpeningMotionDetector;->**(**)**
+HSPLcz/pflanzer/foldduo/pose/PoseClassifier*;->**(**)**
+HSPLcz/pflanzer/foldduo/PoseEngine;->**(**)**
+Lcz/pflanzer/foldduo/PoseEngine;
+
+# --- systemfrost: the overlay path that mirrors the morph outside the launcher's own window ---
+HSPLcz/pflanzer/foldduo/systemfrost/SystemFrost;->**(**)**
+Lcz/pflanzer/foldduo/systemfrost/SystemFrost;
+HSPLcz/pflanzer/foldduo/systemfrost/SystemFrostPlan*;->**(**)**
+HSPLcz/pflanzer/foldduo/systemfrost/SystemFrostFold*;->**(**)**
+HSPLcz/pflanzer/foldduo/systemfrost/ChoreographerFrameSampler;->**(**)**

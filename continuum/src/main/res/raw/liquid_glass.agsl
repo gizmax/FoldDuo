@@ -1,0 +1,82 @@
+// IDEAS.md B41 "Liquid Glass ikony a dock" — Fold Duo has no cross-window blur-behind, so this
+// shader stands in for it: it refracts a small crop of our own wallpaper (FrostedBackdrop.kt's
+// backing, drawn as this shader's `content`) the way a rounded-rect glass lens would, adds a
+// specular rim on the edge facing the light, an inner shadow on the opposite edge, and a faint
+// white veil. Used behind Clear-glass icons, the dock slab and folder tiles
+// (LiquidGlassBacking.kt's `Modifier.liquidGlassPanel`); see LiquidGlassMotion.kt for a pure
+// Kotlin mirror of the height-field/offset maths below, used by the JVM tests.
+//
+// Uniforms:
+// - size: layer size in px.
+// - cornerRadius: the lens' rounded-rect corner radius in px (an approximation of the icon's
+//   actual outline — Squircle/Teardrop/Circle all clip to their own shape in Compose; this only
+//   drives how the refraction/rim falls off near the edge).
+// - lightDir: normalised 2D light direction (screen space), low-passed from gravity.
+// - bulge: 0..1, animated while an icon/folder is being dragged; doubles the rest offset.
+// - tint: optional extra tint mixed into the refracted colour (rgb, alpha = mix amount); zero
+//   alpha by default, so only the shader's own fixed veil shows.
+//
+// NOTE: minimal AGSL constructs (no branches beyond a couple of divisions-by-zero guards, no
+// loops) — same on-device compiler constraint fold_morph.agsl documents.
+
+uniform shader content;
+uniform float2 size;
+uniform float cornerRadius;
+uniform float2 lightDir;
+uniform float bulge;
+uniform float4 tint;
+
+// Rest-state refraction offset in px (see LiquidGlassMotion.LIQUID_GLASS_REST_OFFSET_PX).
+const float REST_OFFSET_PX = 6.0;
+// Distance inward from the edge over which the height field falls to zero, as a fraction of the
+// shorter side (clamped so a tiny icon never reads as "all edge").
+const float EDGE_BAND_FRACTION = 0.6;
+
+// Signed distance to a centred [halfSize] rounded rect of corner radius [r]: negative inside.
+float roundedRectSdf(float2 p, float2 halfSize, float r) {
+    float2 q = abs(p) - halfSize + r;
+    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+}
+
+half4 main(float2 fragCoord) {
+    if (size.x <= 1.0 || size.y <= 1.0) {
+        return content.eval(fragCoord);
+    }
+    float2 halfSize = size * 0.5;
+    float2 p = fragCoord - halfSize;
+    float r = clamp(cornerRadius, 0.0, min(halfSize.x, halfSize.y));
+    float sdf = roundedRectSdf(p, halfSize, r);
+
+    // Height field: 0 at the centre, 1 right at the boundary, smoothstepped over the band.
+    float edgeDistance = max(-sdf, 0.0);
+    float edgeBand = max(min(halfSize.x, halfSize.y) * EDGE_BAND_FRACTION, 1.0);
+    float t = clamp(edgeDistance / edgeBand, 0.0, 1.0);
+    float height = 1.0 - t * t * (3.0 - 2.0 * t);
+
+    // Outward normal via a numeric gradient of the SDF (cheap: an icon-sized layer, four taps).
+    float2 dx = float2(1.0, 0.0);
+    float2 dy = float2(0.0, 1.0);
+    float gx = roundedRectSdf(p + dx, halfSize, r) - roundedRectSdf(p - dx, halfSize, r);
+    float gy = roundedRectSdf(p + dy, halfSize, r) - roundedRectSdf(p - dy, halfSize, r);
+    float gradLen = length(float2(gx, gy));
+    float2 normal = gradLen > 1e-4 ? float2(gx, gy) / gradLen : float2(0.0, 0.0);
+
+    float offsetPx = height * REST_OFFSET_PX * (1.0 + clamp(bulge, 0.0, 1.0));
+    half4 c = content.eval(fragCoord + normal * offsetPx);
+
+    float lightLen = length(lightDir);
+    float2 lightN = lightLen > 1e-4 ? lightDir / lightLen : float2(-0.7071, -0.7071);
+    float align = dot(normal, lightN);
+    float rim = smoothstep(0.55, 1.0, align) * height;
+    float shadow = smoothstep(0.55, 1.0, -align) * height;
+
+    // Content is premultiplied; unpremultiply for the additive/mix work, then repremultiply.
+    half alpha = c.a;
+    half3 straight = alpha > half(0.0) ? c.rgb / alpha : half3(0.0);
+    straight += half3(rim * 0.55);
+    straight -= half3(shadow * 0.18);
+    straight = mix(straight, tint.rgb, half(clamp(tint.a, 0.0, 1.0)));
+    straight = mix(straight, half3(1.0), half(0.06)); // fixed 6% white veil
+    straight = clamp(straight, half3(0.0), half3(1.0));
+    return half4(straight * alpha, alpha);
+}

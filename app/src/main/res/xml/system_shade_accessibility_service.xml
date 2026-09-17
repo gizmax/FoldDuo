@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SystemFrost (systemfrost/SystemFrost.kt) reads rootInActiveWindow?.packageName to tell
+     whether our own launcher or a third-party app is in front; that needs window content
+     retrieval, so canRetrieveWindowContent is on and the packageNames filter (which used to
+     restrict this service to its own package's events) is gone. eventTypes is forced to 0
+     (off) at runtime by default (onServiceConnected) and widened to
+     typeWindowContentChanged|typeWindowsChanged only while a B15 continuity bridge is showing
+     (SystemFrost.setAccessibilityEventsEnabled) — both are declared here so that widening is not
+     rejected. -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/shade_service_description"
+    android:accessibilityEventTypes="typeViewClicked|typeWindowContentChanged|typeWindowsChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:notificationTimeout="0"
+    android:canRetrieveWindowContent="true"
+    android:canPerformGestures="false"
+    android:canTakeScreenshot="true" />

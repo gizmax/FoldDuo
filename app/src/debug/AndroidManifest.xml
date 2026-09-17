@@ -1,0 +1,40 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Debug only: PoseProbeActivity registers mag/gyro/accel at SENSOR_DELAY_FASTEST (>200 Hz),
+         which Android 12+ refuses with a SecurityException without this normal permission. -->
+    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
+    <application>
+        <receiver android:name=".IconDumpReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="cz.pflanzer.foldduo.DEBUG_ICON_DUMP" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name=".CameraIslandDebugReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="cz.pflanzer.foldduo.DEBUG_ISLAND" />
+            </intent-filter>
+        </receiver>
+        <activity
+            android:name=".FoldMotionActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="Duo Fold Motion Lab"
+            android:resizeableActivity="true" />
+        <activity
+            android:name=".FoldProbeActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="Duo Fold Probe"
+            android:resizeableActivity="true" />
+        <activity
+            android:name=".PoseProbeActivity"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="Fold Duo Pose Probe"
+            android:launchMode="singleTop"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:resizeableActivity="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|density|uiMode" />
+    </application>
+</manifest>

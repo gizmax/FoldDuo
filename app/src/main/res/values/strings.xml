@@ -1,0 +1,7 @@
+<resources>
+    <string name="dune_wallpaper_description">One picture on both screens: the cover shows the right half of the unfolded one, and the left half frosts in on every unfold — on the lock screen and under any Home.</string>
+    <string name="shade_service_label">Duo Launcher shade gestures</string>
+    <string name="shade_service_description">Allows Duo Launcher’s Home screen gestures to open the system notifications and Quick Settings panels. It does not read screen content or observe activity in other apps.</string>
+    <string name="island_listener_label">Duo Launcher Live Updates</string>
+    <string name="island_listener_description">Shows ongoing notifications (timers, navigation, calls, media) as a Live Updates island in the launcher’s rail. Duo Launcher does not store or forward notification content.</string>
+</resources>

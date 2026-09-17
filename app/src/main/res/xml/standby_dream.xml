@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- StandBy as a system screen saver (StandByDreamService). No settings activity: the faces
+     are configured in the launcher's customization sheet, StandBy section. -->
+<dream xmlns:android="http://schemas.android.com/apk/res/android" />

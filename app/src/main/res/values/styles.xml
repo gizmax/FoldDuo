@@ -1,0 +1,21 @@
+<resources>
+    <!-- 2026-09-17 night: dropped `android:fontFamily="sans"` (IosStyle.kt has the full finding) —
+         "sans" is not the canonical generic family name ("sans-serif" is), so this theme now
+         inherits its parent's default text appearance, the platform default. -->
+    <style name="Theme.Duo" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">#567587</item>
+        <item name="android:colorAccent">#30596D</item>
+    </style>
+    <!-- StandBy (standby/StandByActivity.kt): black, no bars, full-bleed under the cover cutout. -->
+    <style name="Theme.Duo.StandBy" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#000000</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:statusBarColor">#000000</item>
+        <item name="android:navigationBarColor">#000000</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+</resources>
